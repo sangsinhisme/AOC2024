@@ -29,7 +29,7 @@ const (
 func ReadInput(day int) []string {
 	sessionToken := Config.GetConfiguration().AdventSession
 	// Construct the URL
-	url := fmt.Sprintf("%s/%d/day/%d/Input", adventDomain, year, day)
+	url := fmt.Sprintf("%s/%d/day/%d/input", adventDomain, year, day)
 	// Create a new HTTP request
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
