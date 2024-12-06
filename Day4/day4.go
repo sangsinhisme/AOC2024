@@ -144,7 +144,7 @@ func Part2(submit bool) {
 			graph[i][j] = char
 		}
 	}
-	ans := MAS(n, m, graph)
+	ans := XMAS(n, m, graph)
 	fmt.Println(Utils.Yellow + fmt.Sprintf("Answers this part: %v. Let's submit this problem.", ans) + Utils.Reset)
 	if submit {
 		Utils.Submit(day, 2, ans)
