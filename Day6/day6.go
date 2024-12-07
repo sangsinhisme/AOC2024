@@ -3,9 +3,6 @@ package Day6
 import (
 	"AOD2024/Utils"
 	"fmt"
-	"sort"
-	"strconv"
-	"strings"
 )
 
 const day = 6
@@ -72,52 +69,84 @@ func Part2(submit bool) {
 		}
 		lines, err = Utils.ReadFileLines(fmt.Sprintf("Input/%v.txt", day))
 	}
-	pageCondition := make(map[int]map[int]int)
-	printPage := make([][]int, 0)
-	split := false
-	for _, line := range lines {
-		if line == "" {
-			split = true
-			continue
-		}
-		if !split {
-			pages := strings.Split(line, "|")
-			left, _ := strconv.Atoi(pages[0])
-			right, _ := strconv.Atoi(pages[1])
-			if pageCondition[left] == nil {
-				pageCondition[left] = make(map[int]int)
+	n := len(lines)
+	m := len(lines[0])
+	graph := make([][]uint8, n)
+	for i := range n {
+		graph[i] = make([]uint8, m)
+	}
+	startI, startJ := 0, 0
+	for i, line := range lines {
+		for j := range line {
+			if line[j] == '^' {
+				startI = i
+				startJ = j
 			}
-			pageCondition[left][right] = 1
-		} else {
-			page := strings.Split(line, ",")
-			tempPage := make([]int, len(page))
-			for i, elem := range page {
-				tempPage[i], _ = strconv.Atoi(elem)
-			}
-			printPage = append(printPage, tempPage)
+			graph[i][j] = line[j]
 		}
 	}
-	ans := 0
-	for _, line := range printPage {
-		correctOrder := true
-		for i := 1; i < len(line) && correctOrder; i++ {
-			for j := 0; j < i && correctOrder; j++ {
-				if pageCondition[line[i]][line[j]] == 1 {
-					correctOrder = false
-					break
-				}
-			}
+
+	direct := map[int][2]int{
+		0: {-1, 0},
+		1: {0, 1},
+		2: {1, 0},
+		3: {0, -1},
+	}
+	visited := make(map[[2]int]int)
+	currDirect := 0
+	currI, currJ := startI, startJ
+	for currI > -1 && currI < n && currJ > -1 && currJ < m {
+		if visited[[2]int{currI, currJ}] != 1 {
+			visited[[2]int{currI, currJ}] = 1
 		}
-		if !correctOrder {
-			sort.Slice(line, func(i, j int) bool {
-				return pageCondition[line[i]][line[j]] == 1
-			})
-			middle := len(line) / 2
-			ans += line[middle]
+		nextI, nextJ := currI+direct[currDirect][0], currJ+direct[currDirect][1]
+		if nextI > -1 && nextI < n && nextJ > -1 && nextJ < m && graph[nextI][nextJ] == '#' {
+			currDirect = (currDirect + 1) % 4
+		}
+		currI, currJ = currI+direct[currDirect][0], currJ+direct[currDirect][1]
+	}
+	ans := 0
+	for i := range n {
+		for j := range m {
+			if graph[i][j] == '.' {
+				graph[i][j] = '#'
+				if deathLoop(startI, startJ, n, m, graph) {
+					ans++
+				}
+				graph[i][j] = '.'
+			}
 		}
 	}
 	fmt.Println(Utils.Yellow + fmt.Sprintf("Answers this part: %v. Let's submit this problem.", ans) + Utils.Reset)
-	if submit {
-		Utils.Submit(day, 2, ans)
+	//if submit {
+	//	Utils.Submit(day, 2, ans)
+	//}
+}
+
+func deathLoop(currI, currJ, n, m int, graph [][]uint8) bool {
+	directions := [4][2]int{
+		{-1, 0},
+		{0, 1},
+		{1, 0},
+		{0, -1},
 	}
+	visited := make(map[[2]int]int)
+	currDirection := 0
+
+	for currI >= 0 && currI < n && currJ >= 0 && currJ < m {
+		pos := [2]int{currI, currJ}
+		if visited[pos] > 4 {
+			return true
+		}
+		visited[pos]++
+
+		nextI, nextJ := currI+directions[currDirection][0], currJ+directions[currDirection][1]
+
+		if nextI >= 0 && nextI < n && nextJ >= 0 && nextJ < m && graph[nextI][nextJ] == '#' {
+			currDirection = (currDirection + 1) % 4
+		} else {
+			currI, currJ = nextI, nextJ
+		}
+	}
+	return false
 }
