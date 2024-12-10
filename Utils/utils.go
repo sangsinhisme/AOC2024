@@ -193,3 +193,11 @@ func Abs(i, j int) int {
 	}
 	return i - j
 }
+
+func Pow10(exp int) int {
+	result := 1
+	for i := 0; i < exp; i++ {
+		result *= 10
+	}
+	return result
+}
