@@ -194,6 +194,15 @@ func Abs(i, j int) int {
 	return i - j
 }
 
+func NumDigits(num int) int {
+	count := 0
+	for num > 0 {
+		num /= 10
+		count++
+	}
+	return count
+}
+
 func Pow10(exp int) int {
 	result := 1
 	for i := 0; i < exp; i++ {
