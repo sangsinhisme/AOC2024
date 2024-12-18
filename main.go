@@ -1,10 +1,10 @@
 package main
 
 import (
-	"AOD2024/Day14"
+	"AOD2024/Day15"
 )
 
 func main() {
-	//Day14.Part1(true)
-	Day14.Part2(true)
+	//Day15.Part1(true)
+	Day15.Part2(false)
 }
