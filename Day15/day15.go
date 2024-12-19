@@ -82,25 +82,86 @@ func lanternfishTwiceWide(mapPuzzle [][]uint8, movePuzzle []uint8, init [2]int) 
 				}
 				init[0], init[1] = init[0]+direct[0], init[1]+direct[1]
 			} else {
-				var blocks [][2]int
+				var historyBlock [][2]int
+				var initBlock [][2]int
+				var firstBlock, secondBlock [2]int
 				if mapPuzzle[nextN][nextM] == '[' {
-					blocks = [][2]int{{nextN, nextM}, {nextN, nextM + 1}}
+					initBlock = [][2]int{{nextN, nextM}, {nextN, nextM + 1}}
+					firstBlock = [2]int{nextN, nextM}
+					secondBlock = [2]int{nextN, nextM + 1}
 				} else {
-					blocks = [][2]int{{nextN, nextM}, {nextN, nextM - 1}}
+					initBlock = [][2]int{{nextN, nextM}, {nextN, nextM - 1}}
+					firstBlock = [2]int{nextN, nextM}
+					secondBlock = [2]int{nextN, nextM - 1}
 				}
-				for block := range blocks {
-					fmt.Println(block)
+				historyBlock = append(initBlock, historyBlock...)
+				foundObstacle := false
+
+				for {
+					var newBlock [][2]int
+					visited := make(map[[2]int]int)
+					for _, block := range initBlock {
+						n, m := block[0]+direct[0], block[1]+direct[1]
+						if visited[[2]int{n, m}] != 1 {
+							if mapPuzzle[n][m] == mapPuzzle[block[0]][block[1]] {
+								newBlock = append(newBlock, [2]int{n, m})
+								visited[[2]int{n, m}] = 1
+							} else if mapPuzzle[n][m] == '[' {
+								newBlock = append(newBlock, [2]int{n, m})
+								visited[[2]int{n, m}] = 1
+								if visited[[2]int{n, m + 1}] != 1 {
+									newBlock = append(newBlock, [2]int{n, m + 1})
+									visited[[2]int{n, m + 1}] = 1
+								}
+							} else if mapPuzzle[n][m] == ']' {
+								newBlock = append(newBlock, [2]int{n, m})
+								visited[[2]int{n, m}] = 1
+								if visited[[2]int{n, m - 1}] != 1 {
+									newBlock = append(newBlock, [2]int{n, m - 1})
+									visited[[2]int{n, m - 1}] = 1
+								}
+							} else if mapPuzzle[n][m] == '#' {
+								foundObstacle = true
+								break
+							}
+						}
+
+					}
+					if foundObstacle {
+						break
+					}
+					if len(newBlock) == 0 {
+						break
+					}
+
+					initBlock = newBlock
+					historyBlock = append(initBlock, historyBlock...)
+				}
+				if !foundObstacle {
+					for _, block := range historyBlock {
+						n, m := block[0], block[1]
+						blockNextN, blockNextM := n+direct[0], m+direct[1]
+						mapPuzzle[blockNextN][blockNextM] = mapPuzzle[n][m]
+						mapPuzzle[n][m] = '.'
+					}
+					mapPuzzle[firstBlock[0]][firstBlock[1]] = '.'
+					mapPuzzle[secondBlock[0]][secondBlock[1]] = '.'
+					init[0], init[1] = init[0]+direct[0], init[1]+direct[1]
 				}
 			}
-		}
-		for l := range mapPuzzle {
-			for k := range mapPuzzle[0] {
-				fmt.Printf("%s", string(mapPuzzle[l][k]))
-			}
-			fmt.Println()
 		}
 	}
-	return 0
+	ans := 0
+	for l := range mapPuzzle {
+		for k := range mapPuzzle[0] {
+			fmt.Printf("%s", string(mapPuzzle[l][k]))
+			if mapPuzzle[l][k] == '[' {
+				ans += (100 * l) + k
+			}
+		}
+		fmt.Println()
+	}
+	return ans
 }
 
 func Part1(submit bool) {
