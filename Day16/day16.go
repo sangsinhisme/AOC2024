@@ -53,7 +53,7 @@ func reindeerOlympics(start, end [2]int, n, m int, graph [][]uint8) int {
 }
 
 func Part1(submit bool) {
-	lines, err := Utils.ReadFileLines(fmt.Sprintf("Day%v/sample.txt.txt", day))
+	lines, err := Utils.ReadFileLines(fmt.Sprintf("Day%v/sample.txt", day))
 	if submit {
 		lines, err = Utils.ReadFileLines(fmt.Sprintf("Input/%v.txt", day))
 		if err != nil {
@@ -96,7 +96,7 @@ func Part1(submit bool) {
 }
 
 func Part2(submit bool) {
-	lines, err := Utils.ReadFileLines(fmt.Sprintf("Day%v/sample.txt.txt", day))
+	lines, err := Utils.ReadFileLines(fmt.Sprintf("Day%v/sample.txt", day))
 	if submit {
 		lines, err = Utils.ReadFileLines(fmt.Sprintf("Input/%v.txt", day))
 		if err != nil {
