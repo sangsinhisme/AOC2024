@@ -3,7 +3,6 @@ package Day21
 import (
 	"AOD2024/Utils"
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 )
@@ -11,125 +10,115 @@ import (
 const day = 21
 const title = "--- Day 21: Keypad Conundrum ---"
 
-func makeShortedPath(keyboard [][]rune, order []rune) map[[2]rune]string {
-	moveMap := map[rune][2]int{
-		'>': {0, 1},
-		'v': {1, 0},
-		'^': {-1, 0},
-		'<': {0, -1},
-	}
-	shorted := map[[2]rune]string{}
-	for i := range len(keyboard) {
-		for j := range len(keyboard[1]) {
-			start := keyboard[i][j]
-			queue := Utils.NewQueue()
-			queue.Push([3]any{i, j, ""})
-			visited := map[rune]bool{}
-			visited[start] = true
-			for queue.Length() > 0 {
-				curr := queue.Pop().([3]any)
-				currI, currJ := curr[0].(int), curr[1].(int)
-				moveString := curr[2].(string)
+type pos struct{ r, c int }
 
-				for _, moveChar := range order {
-					move := moveMap[moveChar]
-					nextI, nextJ := currI+move[0], currJ+move[1]
-					if nextI >= 0 && nextI < len(keyboard) && nextJ >= 0 && nextJ < len(keyboard[1]) {
-						nextNumeric := keyboard[nextI][nextJ]
-						if nextNumeric != '-' && !visited[nextNumeric] {
-							nextMove := moveString + string(moveChar)
-							queue.Push([3]any{nextI, nextJ, nextMove})
-							shorted[[2]rune{start, nextNumeric}] = nextMove
-							visited[nextNumeric] = true
-						}
-					}
-				}
-			}
+func layout(rows []string) map[rune]pos {
+	m := map[rune]pos{}
+	for r, row := range rows {
+		for c, ch := range row {
+			m[ch] = pos{r, c}
 		}
 	}
-	return shorted
+	return m
 }
 
-func convertCode(line string, shorted map[[2]rune]string) string {
-	line = "A" + line
-	var findPath strings.Builder
-	for i := range (len(line)) - 1 {
-		findPath.WriteString(shorted[[2]rune{rune(line[i]), rune(line[i+1])}] + "A")
+var numeric = layout([]string{"789", "456", "123", "-0A"})
+var direction = layout([]string{"-^A", "<v>"})
+
+// bestMove: group same arrows, prefer '<' first, then '^'/'v', then '>'.
+// If that order would pass the gap, use the reverse order.
+func bestMove(pad map[rune]pos, from, to rune) string {
+	a, b, gap := pad[from], pad[to], pad['-']
+	dr, dc := b.r-a.r, b.c-a.c
+	var h, v string
+	if dc < 0 {
+		h = strings.Repeat("<", -dc)
+	} else {
+		h = strings.Repeat(">", dc)
 	}
-	return findPath.String()
+	if dr < 0 {
+		v = strings.Repeat("^", -dr)
+	} else {
+		v = strings.Repeat("v", dr)
+	}
+	horizontalFirst := dc < 0
+	if horizontalFirst && a.r == gap.r && b.c == gap.c {
+		horizontalFirst = false // corner (a.r, b.c) is the gap
+	}
+	if !horizontalFirst && a.c == gap.c && b.r == gap.r {
+		horizontalFirst = true // corner (b.r, a.c) is the gap
+	}
+	if horizontalFirst {
+		return h + v + "A"
+	}
+	return v + h + "A"
 }
 
-func solvePart1(line string, orderNumeric []rune) int {
-	numeric := [][]rune{
-		{'7', '8', '9'},
-		{'4', '5', '6'},
-		{'1', '2', '3'},
-		{'-', '0', 'A'},
-	}
-	direction := [][]rune{
-		{'-', '^', 'A'},
-		{'<', 'v', '>'},
-	}
-	shortedNumeric := makeShortedPath(numeric, orderNumeric)
-	shortedDirection := makeShortedPath(direction, orderNumeric)
-	firstConv := convertCode(line, shortedNumeric)
-	secondConv := convertCode(firstConv, shortedDirection)
-	thirdConv := convertCode(secondConv, shortedDirection)
-	return len(thirdConv)
+type memoKey struct {
+	from, to rune
+	depth    int
 }
 
-func permutations(order []rune) [][]rune {
-	var res [][]rune
-	var cur []rune
-	used := make([]bool, len(order))
+var memo = map[memoKey]int{}
 
-	var dfs func()
-	dfs = func() {
-		if len(cur) == len(order) {
-			res = append(res, append([]rune(nil), cur...)) // copy, cur gets reused
-			return
+// cost = presses on the human keypad needed to make the robot at `depth`
+// move from `from` to `to` and press it.
+func cost(from, to rune, depth int) int {
+	if depth == 0 {
+		return 1
+	}
+	k := memoKey{from, to, depth}
+	if v, ok := memo[k]; ok {
+		return v
+	}
+	total := 0
+	prev := 'A'
+	for _, ch := range bestMove(direction, from, to) {
+		total += cost(prev, ch, depth-1)
+		prev = ch
+	}
+	memo[k] = total
+	return total
+}
+
+func solve(code string, robots int) int {
+	total := 0
+	prev := 'A'
+	for _, ch := range code {
+		p := 'A'
+		for _, s := range bestMove(numeric, prev, ch) {
+			total += cost(p, s, robots)
+			p = s
 		}
-		for i, r := range order {
-			if used[i] {
-				continue
-			}
-			used[i] = true
-			cur = append(cur, r)
-			dfs()
-			cur = cur[:len(cur)-1]
-			used[i] = false
-		}
+		prev = ch
 	}
-	dfs()
-	return res
+	return total
+}
+
+func resolve(lines []string, robots int) int {
+	ans := 0
+	for _, line := range lines {
+		moves := solve(line, robots)
+		fmt.Printf("Solved %s with %d moves.\n", line, moves)
+		numericPart, _ := strconv.Atoi(strings.TrimSuffix(line, "A"))
+		ans += moves * numericPart
+	}
+	return ans
 }
 
 func Part1(submit bool) {
 	lines, _ := Utils.ReadFileLines(fmt.Sprintf("Day%v/sample.txt", day))
-	order := []rune{'>', 'v', '^', '<'}
-	ans := 0
-	for _, line := range lines {
-		shorted := math.MaxInt
-		for _, p := range permutations(order) {
-			shorted = min(solvePart1(line, p), shorted)
-		}
-		fmt.Printf("Solved %s with %d moves.\n", line, shorted)
-		numericPart, _ := strconv.Atoi(strings.ReplaceAll(line, "A", ""))
-		ans += shorted * numericPart
-	}
+	ans := resolve(lines, 2)
 	fmt.Println(Utils.Blue + fmt.Sprintf("%s", title) + Utils.Reset)
 	fmt.Println(Utils.Yellow + fmt.Sprintf("Answers this part: %v. Let's submit this problem .", ans) + Utils.Reset)
+	if submit {
+		Utils.Submit(day, 1, ans)
+	}
 }
 
 func Part2(submit bool) {
 	lines, _ := Utils.ReadFileLines(fmt.Sprintf("Day%v/sample.txt", day))
-	n := len(lines)
-	m := len(lines[0])
-	graph := make([][]uint8, n)
-	for i := range n {
-		graph[i] = make([]uint8, m)
-	}
-	ans := 0
+	ans := resolve(lines, 25)
 	fmt.Println(Utils.Blue + fmt.Sprintf("%s", title) + Utils.Reset)
 	fmt.Println(Utils.Yellow + fmt.Sprintf("Answers this part: %v. Let's submit this problem .", ans) + Utils.Reset)
 	if submit {
