@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	Day22.Part1(false)
+	Day22.Part2(false)
 }
