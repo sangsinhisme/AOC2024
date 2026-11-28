@@ -18,36 +18,43 @@ type Wire struct {
 
 type Gate struct {
 	input [2]string
-	kind  int // 0: AND, 1: OR, 2: XOR
+	kind  Kind // 0: AND, 1: OR, 2: XOR
 }
 
-func convertGate(input string) int {
-	if input == "AND" {
-		return 0
-	}
-	if input == "OR" {
-		return 1
-	}
-	return 2
+type Kind int
+
+const (
+	AND Kind = iota
+	OR
+	XOR
+)
+
+var kinds = map[string]Kind{
+	"AND": AND,
+	"OR":  OR,
+	"XOR": XOR,
 }
 
 func findWireValue(wires map[string]int, gates map[string]Gate, name string) int {
 	if wire, ok := wires[name]; ok {
 		return wire
 	}
-	output := 0
-	if gate, ok := gates[name]; ok {
-		if gate.kind == 0 {
-			output = findWireValue(wires, gates, gate.input[0]) & findWireValue(wires, gates, gate.input[1])
-		}
-		if gate.kind == 1 {
-			output = findWireValue(wires, gates, gate.input[0]) | findWireValue(wires, gates, gate.input[1])
-		}
-		if gate.kind == 2 {
-			output = findWireValue(wires, gates, gate.input[0]) ^ findWireValue(wires, gates, gate.input[1])
-		}
+	var out int
+	gate := gates[name]
+	a := findWireValue(wires, gates, gate.input[0])
+	b := findWireValue(wires, gates, gate.input[1])
+
+	switch gate.kind {
+	case AND:
+		out = a & b
+	case OR:
+		out = a | b
+	case XOR:
+		out = a ^ b
+	default:
+		panic("bad gate kind")
 	}
-	wires[name] = output
+	wires[name] = out
 	return wires[name]
 }
 
@@ -69,7 +76,7 @@ func Part1(submit bool) {
 	}
 	for i < len(lines) {
 		line := strings.Split(lines[i], " ")
-		gates[line[4]] = Gate{input: [2]string{line[0], line[2]}, kind: convertGate(line[1])}
+		gates[line[4]] = Gate{input: [2]string{line[0], line[2]}, kind: kinds[line[1]]}
 		if line[4][0] == 'z' {
 			wiresZ[line[4]] = true
 		}
